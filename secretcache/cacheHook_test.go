@@ -39,8 +39,8 @@ func TestCacheHookString(t *testing.T) {
 	hook := &DummyCacheHook{}
 
 	secretCache, _ := secretcache.New(
-		func(c *secretcache.Cache) {c.Client = &mockClient},
-		func(c *secretcache.Cache) {c.CacheConfig.Hook = hook},
+		func(c *secretcache.Cache) { c.Client = &mockClient },
+		func(c *secretcache.Cache) { c.CacheConfig.Hook = hook },
 	)
 
 	result, err := secretCache.GetSecretString(secretId)
@@ -70,8 +70,8 @@ func TestCacheHookBinary(t *testing.T) {
 	hook := &DummyCacheHook{}
 
 	secretCache, _ := secretcache.New(
-		func(c *secretcache.Cache) {c.Client = &mockClient},
-		func(c *secretcache.Cache) {c.CacheConfig.Hook = hook},
+		func(c *secretcache.Cache) { c.Client = &mockClient },
+		func(c *secretcache.Cache) { c.CacheConfig.Hook = hook },
 	)
 
 	result, err := secretCache.GetSecretBinary(secretId)

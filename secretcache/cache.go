@@ -23,7 +23,7 @@ import (
 
 // Cache client for AWS Secrets Manager secrets.
 type Cache struct {
-	lru    *lruCache
+	lru *lruCache
 	CacheConfig
 	Client secretsmanageriface.SecretsManagerAPI
 }
@@ -39,7 +39,7 @@ func New(optFns ...func(*Cache)) (*Cache, error) {
 		CacheConfig: CacheConfig{
 			MaxCacheSize: DefaultMaxCacheSize,
 			VersionStage: DefaultVersionStage,
-			CacheItemTTL: DefaultMaxCacheSize,
+			CacheItemTTL: DefaultCacheItemTTL,
 		},
 	}
 

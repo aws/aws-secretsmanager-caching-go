@@ -161,3 +161,48 @@ func TestLRUCacheOne(t *testing.T) {
 		}
 	}
 }
+
+func TestConcurrentAccess(t *testing.T) {
+	cache := newLRUCache(1)
+	cache.putIfAbsent("key", "value")
+
+	failed := make(chan bool)
+
+	go accessor(cache, 500, "key", "value", failed)
+	go accessor(cache, 400, "key", "value", failed)
+	go accessor(cache, 300, "key", "value", failed)
+	go accessor(cache, 600, "key", "value", failed)
+
+	for i := 0; i < 4; i++ {
+		if <-failed {
+			t.Fatalf("Expected value not found")
+		}
+	}
+}
+
+func accessor(cache *lruCache, n int, key string, value string, failed chan bool) {
+	for i := 0; i < n; i++ {
+		if val, found := cache.get(key); !found || val != value {
+			failed <- true
+		}
+	}
+
+	failed <- false
+}
+
+func TestConcurrentMutations(t *testing.T) {
+	cache := newLRUCache(1)
+	failed := make(chan bool)
+
+	go mutator(cache, 500, "key")
+	go mutator(cache, 400, "key")
+	go accessor(cache, 300, "key", "value", failed)
+	go accessor(cache, 600, "key", "value", failed)
+
+}
+
+func mutator(cache *lruCache, n int, key string) {
+	for i := 0; i < n; i++ {
+		cache.putIfAbsent(key, i)
+	}
+}
