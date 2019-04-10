@@ -73,15 +73,9 @@ func (cv *cacheVersion) refresh() {
 // executeRefresh performs the actual refresh of the cached secret information.
 // Returns the GetSecretValue API result and an error if operation fails.
 func (cv *cacheVersion) executeRefresh() (*secretsmanager.GetSecretValueOutput, error) {
-
-	versionStage := cv.config.VersionStage
-	if versionStage == "" {
-		versionStage = DefaultVersionStage
-	}
-
 	input := &secretsmanager.GetSecretValueInput{
-		SecretId:     &cv.secretId,
-		VersionStage: &versionStage,
+		SecretId:  &cv.secretId,
+		VersionId: &cv.versionId,
 	}
 	return cv.client.GetSecretValueWithContext(aws.BackgroundContext(), input, request.WithAppendUserAgent(userAgent()))
 }

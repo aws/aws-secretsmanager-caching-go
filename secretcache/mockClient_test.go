@@ -25,19 +25,24 @@ import (
 // A struct to be used in unit tests as a mock Client
 type mockSecretsManagerClient struct {
 	secretsmanageriface.SecretsManagerAPI
-	MockedGetResult      *secretsmanager.GetSecretValueOutput
-	MockedDescribeResult *secretsmanager.DescribeSecretOutput
-	GetSecretValueErr    error
-	DescribeSecretErr    error
+	MockedGetResult         *secretsmanager.GetSecretValueOutput
+	MockedDescribeResult    *secretsmanager.DescribeSecretOutput
+	GetSecretValueErr       error
+	DescribeSecretErr       error
+	GetSecretValueCallCount int
+	DescribeSecretCallCount int
 }
 
 // Initialises a mock Client with dummy outputs for GetSecretValue and DescribeSecret APIs
 func newMockedClientWithDummyResults() (mockSecretsManagerClient, string, string) {
 	createDate := time.Now().Add(-time.Hour * 12) // 12 hours ago
 	versionId := getStrPtr("very-random-uuid")
+	otherVersionId := getStrPtr("other-random-uuid")
 	versionStages := []*string{getStrPtr("hello"), getStrPtr("versionStage-42"), getStrPtr("AWSCURRENT")}
+	otherVersionStages := []*string{getStrPtr("AWSPREVIOUS")}
 	versionIdsToStages := make(map[string][]*string)
 	versionIdsToStages[*versionId] = versionStages
+	versionIdsToStages[*otherVersionId] = otherVersionStages
 	secretId := getStrPtr("dummy-secret-name")
 	secretString := getStrPtr("my secret string")
 
@@ -65,6 +70,8 @@ func newMockedClientWithDummyResults() (mockSecretsManagerClient, string, string
 
 // Overrides the interface method to return dummy result.
 func (m *mockSecretsManagerClient) GetSecretValueWithContext(context aws.Context, input *secretsmanager.GetSecretValueInput, opts ...request.Option) (*secretsmanager.GetSecretValueOutput, error) {
+	m.GetSecretValueCallCount++
+
 	if m.GetSecretValueErr != nil {
 		return nil, m.GetSecretValueErr
 	}
@@ -74,6 +81,8 @@ func (m *mockSecretsManagerClient) GetSecretValueWithContext(context aws.Context
 
 // Overrides the interface method to return dummy result.
 func (m *mockSecretsManagerClient) DescribeSecretWithContext(context aws.Context, input *secretsmanager.DescribeSecretInput, opts ...request.Option) (*secretsmanager.DescribeSecretOutput, error) {
+	m.DescribeSecretCallCount++
+
 	if m.DescribeSecretErr != nil {
 		return nil, m.DescribeSecretErr
 	}

@@ -23,7 +23,6 @@ const (
 
 // CacheConfig is the config object passed to the Cache struct
 type CacheConfig struct {
-
 	//The maximum number of cached secrets to maintain before evicting secrets that
 	//have not been accessed recently.
 	MaxCacheSize int

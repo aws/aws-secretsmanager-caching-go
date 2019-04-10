@@ -15,7 +15,6 @@
 // Also exports a CacheHook, for pre-store and post-fetch processing of cached values
 package secretcache
 
-
 type baseError struct {
 	Message string
 }
@@ -43,4 +42,3 @@ type InvalidOperationError struct {
 func (i *InvalidOperationError) Error() string {
 	return i.Message
 }
-

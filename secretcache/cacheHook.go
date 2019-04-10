@@ -20,7 +20,6 @@ package secretcache
 // cache. One example would be encrypting/decrypting items stored in the
 // in-memory cache.
 type CacheHook interface {
-
 	// Put prepares the object for storing in the cache.
 	Put(data interface{}) interface{}
 
