@@ -1,4 +1,4 @@
-package secretcache_integtests
+package scintegtests
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-secretsmanager-caching-go/secretcache"
 	"math/rand"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -64,15 +65,54 @@ func TestIntegration(t *testing.T) {
 	}
 	secretsManagerClient := secretsmanager.New(sess)
 
-	// Run all integ tests and collect the secret arns created for them
+	// Collect the secret arns created for them
 	var secretNames []string
+
+	// Defer cleanup of secrets to ensure cleanup in case of caller function being terminated
+	defer cleanupSecrets(&secretNames, secretsManagerClient)
+
+	// Run integ tests
 	for _, testFunc := range subTests {
 		secretNames = append(secretNames, testFunc(t, secretsManagerClient))
 	}
+}
 
-	// Lazily delete all the secrets we created
+// Lazily delete all the secrets we created
+// Also delete secrets created over 2 days ago, with the "integTest" prefix
+func cleanupSecrets(secretNames *[]string, secretsManagerClient *secretsmanager.SecretsManager) {
 	var true = true
-	for _, secretName := range secretNames {
+	var nextToken *string
+	twoDaysAgo := time.Now().Add(- (48 * time.Hour))
+	testSecretNamePrefix := "^integTest_.+"
+
+	for {
+		resp, err := secretsManagerClient.ListSecrets(
+				&secretsmanager.ListSecretsInput{NextToken: nextToken},
+			)
+
+		if resp == nil || err != nil {
+			break
+		}
+
+		for _, secret := range resp.SecretList {
+			var name []byte
+			copy(name, *secret.Name)
+			match, _ := regexp.Match(testSecretNamePrefix, name)
+			if match && secret.LastChangedDate.Before(twoDaysAgo) && secret.LastAccessedDate.Before(twoDaysAgo) {
+				*secretNames = append(*secretNames, *secret.Name)
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		nextToken = resp.NextToken
+		time.Sleep(1 * time.Second)
+	}
+
+
+	for _, secretName := range *secretNames {
 		time.Sleep(time.Second / 2)
 		_, _ = secretsManagerClient.DeleteSecret(&secretsmanager.DeleteSecretInput{
 			SecretId:                   &secretName,
