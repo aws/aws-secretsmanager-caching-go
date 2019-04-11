@@ -1,8 +1,7 @@
-package secretcache_test
+package secretcache_integtests
 
 import (
 	"bytes"
-	"flag"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
@@ -13,7 +12,6 @@ import (
 )
 
 var (
-	testIntegration = flag.Bool("integration", false, "run integration tests")
 	randStringSet   = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 	subTests        = []func(t *testing.T, api secretsmanageriface.SecretsManagerAPI) string{
 		integTest_getSecretBinary,
@@ -25,7 +23,6 @@ var (
 )
 
 func init() {
-	flag.Parse()
 	rand.Seed(time.Now().Unix())
 }
 
@@ -58,11 +55,6 @@ func createSecret(
 }
 
 func TestIntegration(t *testing.T) {
-
-	// Skip all integ tests if the -integration flag is not set
-	if !*testIntegration {
-		t.Skip("Skipping integration tests since the -integration flag was not set")
-	}
 
 	// Create a new API client
 	// See https://docs.aws.amazon.com/sdk-for-go/api/aws/session/ for how the session loads credentials
