@@ -14,6 +14,7 @@ import (
 
 var (
 	randStringSet = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
+	secretNamePrefix = "scIntegTest_"
 	subTests      = []func(t *testing.T, api secretsmanageriface.SecretsManagerAPI) string{
 		integTest_getSecretBinary,
 		integTest_getSecretBinaryWithStage,
@@ -37,7 +38,7 @@ func generateRandString(n int) string {
 
 func generateSecretName(testName string) (string, string) {
 	clientRequestToken := generateRandString(32)
-	secretName := "scIntegTest_" + testName + "_" + clientRequestToken
+	secretName := secretNamePrefix + testName + "_" + clientRequestToken
 
 	return secretName, clientRequestToken
 }
@@ -75,7 +76,7 @@ func getPrevRunSecrets(secretsManagerClient *secretsmanager.SecretsManager) []st
 	var nextToken *string
 	var secretNames []string
 	twoDaysAgo := time.Now().Add(-(48 * time.Hour))
-	testSecretNamePrefix := "^scIntegTest_.+"
+	testSecretNamePrefix := "^" + secretNamePrefix + ".+"
 
 	for {
 		resp, err := secretsManagerClient.ListSecrets(
@@ -250,7 +251,7 @@ func integTest_getSecretStringWithStage(t *testing.T, api secretsmanageriface.Se
 	createResult, err := createSecret("getSecretStringWithStage", &secretString, nil, api)
 
 	if err != nil {
-		t.Error("Failed to create secret ", err)
+		t.Errorf("Failed to create secret: \"getSecretStringWithStage\" ERROR: %s", err)
 		return ""
 	}
 
@@ -303,7 +304,7 @@ func integTest_getSecretStringWithTTL(t *testing.T, api secretsmanageriface.Secr
 	createResult, err := createSecret("getSecretStringWithTTL", &secretString, nil, api)
 
 	if err != nil {
-		t.Errorf("Failed to create secret: \"getSecretString\" ERROR: %s", err)
+		t.Errorf("Failed to create secret: \"getSecretStringWithTTL\" ERROR: %s", err)
 		return ""
 	}
 
