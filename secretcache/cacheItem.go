@@ -146,7 +146,7 @@ func (ci *secretCacheItem) refresh() {
 		ci.err = err
 		delay := exceptionRetryDelayBase * math.Pow(exceptionRetryGrowthFactor, float64(ci.errorCount))
 		delay = math.Min(delay, exceptionRetryDelayMax)
-		delayDuration := time.Nanosecond * time.Duration(delay)
+		delayDuration := time.Millisecond * time.Duration(delay)
 		ci.nextRetryTime = time.Now().Add(delayDuration).UnixNano()
 		return
 	}
