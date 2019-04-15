@@ -324,8 +324,12 @@ func TestGetSecretStringMultipleNotFound(t *testing.T) {
 		_, err := secretCache.GetSecretStringWithStage("test", "versionStage-42")
 
 		if err == nil {
-			t.Fatalf("Expected error for a missing secret")
+			t.Fatalf("Expected error: secretNotFound for a missing secret")
 		}
+	}
+
+	if mockClient.DescribeSecretCallCount != 1 {
+		t.Fatalf("Expected a single call to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
 	}
 }
 
@@ -343,8 +347,12 @@ func TestGetSecretBinaryMultipleNotFound(t *testing.T) {
 		_, err := secretCache.GetSecretBinaryWithStage("test", "versionStage-42")
 
 		if err == nil {
-			t.Fatalf("Expected error for a missing secret")
+			t.Fatalf("Expected error: secretNotFound for a missing secret")
 		}
+	}
+
+	if mockClient.DescribeSecretCallCount != 1 {
+		t.Fatalf("Expected a single call to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
 	}
 }
 

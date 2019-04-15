@@ -2,6 +2,7 @@ package scintegtests
 
 import (
 	"bytes"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
@@ -13,14 +14,15 @@ import (
 )
 
 var (
-	randStringSet = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
+	randStringSet    = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 	secretNamePrefix = "scIntegTest_"
-	subTests      = []func(t *testing.T, api secretsmanageriface.SecretsManagerAPI) string{
+	subTests         = []func(t *testing.T, api secretsmanageriface.SecretsManagerAPI) string{
 		integTest_getSecretBinary,
 		integTest_getSecretBinaryWithStage,
 		integTest_getSecretString,
 		integTest_getSecretStringWithStage,
 		integTest_getSecretStringWithTTL,
+		integTest_getSecretStringNoSecret,
 	}
 )
 
@@ -108,6 +110,11 @@ func getPrevRunSecrets(secretsManagerClient *secretsmanager.SecretsManager) []st
 
 func performDelete(secretNames *[]string, secretsManagerClient *secretsmanager.SecretsManager, forceDelete bool) {
 	for _, secretName := range *secretNames {
+
+		if secretName == "" {
+			continue
+		}
+
 		time.Sleep(time.Second / 2)
 		_, _ = secretsManagerClient.DeleteSecret(&secretsmanager.DeleteSecretInput{
 			SecretId:                   &secretName,
@@ -354,4 +361,21 @@ func integTest_getSecretStringWithTTL(t *testing.T, api secretsmanageriface.Secr
 	}
 
 	return *createResult.ARN
+}
+
+func integTest_getSecretStringNoSecret(t *testing.T, api secretsmanageriface.SecretsManagerAPI) string {
+	cache, _ := secretcache.New(
+		func(c *secretcache.Cache) { c.Client = api },
+	)
+
+	secretName := "NoSuchSecret"
+	_, err := cache.GetSecretString(secretName)
+
+	if err == nil {
+		t.Errorf("Expected to not find a secret called %s", secretName)
+	} else if awsErr, _ := err.(awserr.Error); awsErr.Code() != secretsmanager.ErrCodeResourceNotFoundException {
+		t.Errorf("Expected %s err but got %s", secretsmanager.ErrCodeResourceNotFoundException, awsErr.Code())
+	}
+
+	return ""
 }
