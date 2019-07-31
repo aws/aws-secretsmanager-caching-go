@@ -310,9 +310,8 @@ func TestGetSecretBinaryWithStage(t *testing.T) {
 	}
 }
 
-func TestGetSecretStringMultipleNotFound(t *testing.T) {
+func TestMultipleSecretNotFound(t *testing.T) {
 	mockClient := mockSecretsManagerClient{
-		GetSecretValueErr: errors.New("versionNotFound"),
 		DescribeSecretErr: errors.New("secretNotFound"),
 	}
 
@@ -320,7 +319,7 @@ func TestGetSecretStringMultipleNotFound(t *testing.T) {
 		func(c *secretcache.Cache) { c.Client = &mockClient },
 	)
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 50; i++ {
 		_, err := secretCache.GetSecretStringWithStage("test", "versionStage-42")
 
 		if err == nil {
@@ -328,22 +327,7 @@ func TestGetSecretStringMultipleNotFound(t *testing.T) {
 		}
 	}
 
-	if mockClient.DescribeSecretCallCount != 1 {
-		t.Fatalf("Expected a single call to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
-	}
-}
-
-func TestGetSecretBinaryMultipleNotFound(t *testing.T) {
-	mockClient := mockSecretsManagerClient{
-		GetSecretValueErr: errors.New("versionNotFound"),
-		DescribeSecretErr: errors.New("secretNotFound"),
-	}
-
-	secretCache, _ := secretcache.New(
-		func(c *secretcache.Cache) { c.Client = &mockClient },
-	)
-
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 50; i++ {
 		_, err := secretCache.GetSecretBinaryWithStage("test", "versionStage-42")
 
 		if err == nil {
@@ -353,6 +337,44 @@ func TestGetSecretBinaryMultipleNotFound(t *testing.T) {
 
 	if mockClient.DescribeSecretCallCount != 1 {
 		t.Fatalf("Expected a single call to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
+	}
+
+	if mockClient.GetSecretValueCallCount != 0 {
+		t.Fatalf("Expected zero calls to GetSecretValue API, got %d", mockClient.GetSecretValueCallCount)
+	}
+}
+
+func TestMultipleSecretVersionNotFound(t *testing.T) {
+	mockClient, secretId, _ := newMockedClientWithDummyResults()
+	mockClient.MockedGetResult = nil
+	mockClient.GetSecretValueErr = errors.New("versionNotFound")
+
+	secretCache, _ := secretcache.New(
+		func(c *secretcache.Cache) { c.Client = &mockClient },
+	)
+
+	for i := 0; i < 50; i++ {
+		_, err := secretCache.GetSecretStringWithStage(secretId, "versionStage-42")
+
+		if err == nil {
+			t.Fatalf("Expected error: versionNotFound for a missing version")
+		}
+	}
+
+	for i := 0; i < 50; i++ {
+		_, err := secretCache.GetSecretBinaryWithStage(secretId, "versionStage-42")
+
+		if err == nil {
+			t.Fatalf("Expected error: versionNotFound for a missing version")
+		}
+	}
+
+	if mockClient.DescribeSecretCallCount != 1 {
+		t.Fatalf("Expected a single call to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
+	}
+
+	if mockClient.GetSecretValueCallCount != 1 {
+		t.Fatalf("Expected a single call to GetSecretValue API, got %d", mockClient.GetSecretValueCallCount)
 	}
 }
 
@@ -387,5 +409,50 @@ func TestGetSecretVersionStageEmpty(t *testing.T) {
 
 	if result != secretString {
 		t.Fatalf("Expected and result secret string are different - \"%s\", \"%s\"", secretString, result)
+	}
+}
+
+func TestRefreshNow(t *testing.T) {
+	mockClient, secretId, secretString := newMockedClientWithDummyResults()
+
+	secretCache, _ := secretcache.New(
+		func(c *secretcache.Cache) { c.Client = &mockClient },
+	)
+
+	result, err := secretCache.GetSecretString(secretId)
+	if err != nil {
+		t.Fatalf("Unexpected error - %s", err.Error())
+	}
+
+	if result != secretString {
+		t.Fatalf("Expected and result secret string are different - \"%s\", \"%s\"", secretString, result)
+	}
+
+	newVersionId := getStrPtr("new-random-uuid")
+	mockClient.MockedDescribeResult.VersionIdsToStages = make(map[string][]*string)
+	mockClient.MockedDescribeResult.VersionIdsToStages[*newVersionId] = []*string{getStrPtr("AWSCURRENT")}
+	mockClient.MockedGetResult.VersionId = newVersionId
+	mockClient.MockedGetResult.SecretString = getStrPtr("new secret string")
+
+	success, err := secretCache.RefreshNow(secretId)
+	if !success || err != nil {
+		t.Fatalf("Unexpected error - %s", err.Error())
+	}
+
+	result, err = secretCache.GetSecretString(secretId)
+	if err != nil {
+		t.Fatalf("Unexpected error - %s", err.Error())
+	}
+
+	if result != "new secret string" {
+		t.Fatalf("Expected and result secret string are different - \"%s\", \"%s\"", secretString, result)
+	}
+
+	if mockClient.DescribeSecretCallCount != 2 {
+		t.Fatalf("Expected and actual DescribeSecret call count is different - \"%d\", \"%d\"", 2, mockClient.DescribeSecretCallCount)
+	}
+
+	if mockClient.GetSecretValueCallCount != 2 {
+		t.Fatalf("Expected and actual GetSecretValue call count is different - \"%d\", \"%d\"", 2, mockClient.GetSecretValueCallCount)
 	}
 }

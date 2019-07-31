@@ -23,6 +23,7 @@ var (
 		integTest_getSecretStringWithStage,
 		integTest_getSecretStringWithTTL,
 		integTest_getSecretStringNoSecret,
+		integTest_getSecretStringWithRefreshNow,
 	}
 )
 
@@ -378,4 +379,69 @@ func integTest_getSecretStringNoSecret(t *testing.T, api secretsmanageriface.Sec
 	}
 
 	return ""
+}
+
+func integTest_getSecretStringWithRefreshNow(t *testing.T, api secretsmanageriface.SecretsManagerAPI) string {
+	cache, _ := secretcache.New(
+		func(c *secretcache.Cache) { c.Client = api },
+	)
+	secretString := "This is a secret"
+	createResult, err := createSecret("refreshNowString", &secretString, nil, api)
+
+	if err != nil {
+		t.Errorf("Failed to create secret: \"getSecretString\" ERROR: %s", err)
+		return ""
+	}
+
+	resultString, err := cache.GetSecretString(*createResult.ARN)
+	if err != nil {
+		t.Error(err)
+		return *createResult.ARN
+	}
+	if secretString != resultString {
+		t.Errorf("Expected and result secret string are different - \"%s\", \"%s\"", resultString, secretString)
+		return *createResult.ARN
+	}
+
+	currentStageString := "AWSCURRENT"
+	versionStages := []*string{&currentStageString}
+	newSecretString := "This is the new secret"
+	putSecretValueInput := &secretsmanager.PutSecretValueInput{
+		SecretId:      createResult.ARN,
+		SecretString:  &newSecretString,
+		VersionStages: versionStages,
+	}
+
+	_, err = api.PutSecretValue(putSecretValueInput)
+	if err != nil {
+		t.Error(err)
+		return *createResult.ARN
+	}
+
+	resultString, err = cache.GetSecretString(*createResult.ARN)
+	if err != nil {
+		t.Error(err)
+		return *createResult.ARN
+	}
+	if secretString != resultString {
+		t.Errorf("Expected and result secret string are different - \"%s\", \"%s\"", resultString, secretString)
+		return *createResult.ARN
+	}
+
+	if success, err := cache.RefreshNow(*createResult.ARN); !success || err != nil {
+		t.Error(err)
+		return *createResult.ARN
+	}
+
+	resultString, err = cache.GetSecretString(*createResult.ARN)
+	if err != nil {
+		t.Error(err)
+		return *createResult.ARN
+	}
+	if newSecretString != resultString {
+		t.Errorf("Expected and result secret string are different - \"%s\", \"%s\"", resultString, newSecretString)
+		return *createResult.ARN
+	}
+
+	return *createResult.ARN
 }

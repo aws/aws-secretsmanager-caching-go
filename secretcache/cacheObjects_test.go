@@ -15,6 +15,7 @@ package secretcache
 
 import (
 	"errors"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -69,6 +70,7 @@ func TestMaxCacheTTL(t *testing.T) {
 				Description: getStrPtr("dummy-description"),
 			},
 		},
+		r: *rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	config := CacheConfig{CacheItemTTL: -1}
@@ -90,11 +92,70 @@ func TestMaxCacheTTL(t *testing.T) {
 	}
 }
 
+func TestCacheItemRefreshNowError(t *testing.T) {
+	mockClient := dummyClient{DescribeSecretError: errors.New("ResourceNotFound")}
+
+	cacheItem := secretCacheItem{
+		cacheObject: &cacheObject{
+			secretId: "dummy-secret-name",
+			client:   &mockClient,
+			data: &secretsmanager.DescribeSecretOutput{
+				ARN:         getStrPtr("dummy-arn"),
+				Name:        getStrPtr("dummy-name"),
+				Description: getStrPtr("dummy-description"),
+			},
+		},
+		r: *rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+
+	success, err := cacheItem.refreshNow()
+
+	if success || err == nil || err.Error() != "ResourceNotFound" {
+		t.Fatalf("Expected to get false and ResourceNotFound err")
+	}
+}
+
+func TestCacheItemRefreshNowJitter(t *testing.T) {
+	mockClient := dummyClient{}
+
+	cacheItem := secretCacheItem{
+		cacheObject: &cacheObject{
+			secretId: "dummy-secret-name",
+			client:   &mockClient,
+			data: &secretsmanager.DescribeSecretOutput{
+				ARN:         getStrPtr("dummy-arn"),
+				Name:        getStrPtr("dummy-name"),
+				Description: getStrPtr("dummy-description"),
+			},
+		},
+		r: *rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+
+	minExpectedJitter := (refreshNowJitterMax/2).Nanoseconds()
+	for i := 0; i < 3; i++ {
+		refreshStart := time.Now().UnixNano()
+		success, err := cacheItem.refreshNow()
+		refreshEnd := time.Now().UnixNano()
+
+		if !success || err != nil {
+			t.Fatalf("Exptected refresh on cache item to succeed without error - %s", err.Error())
+		}
+
+		if refreshEnd-refreshStart < minExpectedJitter {
+			t.Fatalf("Expected refreshNow jitter for cache item to be at least %d", minExpectedJitter)
+		}
+	}
+}
+
 type dummyClient struct {
 	secretsmanageriface.SecretsManagerAPI
+	DescribeSecretError error
 }
 
 func (d *dummyClient) DescribeSecretWithContext(context aws.Context, input *secretsmanager.DescribeSecretInput, opts ...request.Option) (*secretsmanager.DescribeSecretOutput, error) {
+	if d.DescribeSecretError != nil {
+		return nil, d.DescribeSecretError
+	}
 	return &secretsmanager.DescribeSecretOutput{}, nil
 }
 

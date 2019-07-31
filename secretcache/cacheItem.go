@@ -27,6 +27,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 )
 
+// refreshNowJitterMax is used to introduce a jittered sleep when forcing refresh on a cached secret
+// This helps prevent code from executing refreshNow in a continuous loop without waiting
+const refreshNowJitterMax = 2 * time.Second
+
 // secretCacheItem maintains a cache of secret versions.
 type secretCacheItem struct {
 	versions *lruCache
@@ -35,6 +39,7 @@ type secretCacheItem struct {
 	// after this time, the item will be synchronously refreshed.
 	nextRefreshTime int64
 	*cacheObject
+	r rand.Rand
 }
 
 // newSecretCacheItem initialises a secretCacheItem using default cache size and sets next refresh time to now
@@ -43,6 +48,7 @@ func newSecretCacheItem(config CacheConfig, client secretsmanageriface.SecretsMa
 		versions:        newLRUCache(10),
 		cacheObject:     &cacheObject{config: config, client: client, secretId: secretId, refreshNeeded: true},
 		nextRefreshTime: time.Now().UnixNano(),
+		r: *rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -104,7 +110,7 @@ func (ci *secretCacheItem) executeRefresh() (*secretsmanager.DescribeSecretOutpu
 	} else if maxTTL < 2 {
 		ttl = maxTTL
 	} else {
-		ttl = rand.Int63n(maxTTL/2) + maxTTL/2
+		ttl = ci.r.Int63n(maxTTL/2) + maxTTL/2
 	}
 
 	ci.nextRefreshTime = time.Now().Add(time.Nanosecond * time.Duration(ttl)).UnixNano()
@@ -131,10 +137,35 @@ func (ci *secretCacheItem) getVersion(versionStage string) (*cacheVersion, bool)
 	return secretCacheVersion, true
 }
 
+// refreshNow forces a refresh of the secret state
+// Returns a boolean to indicate refresh success and an error if one occurred.
+func (ci *secretCacheItem) refreshNow() (bool, error) {
+	ci.refreshNeeded = true
+
+	// sleep for a jittered amount between refreshNowJitterMax/2 to refreshNowJitterMax
+	// we do this in order to protect from coding errors that call refreshNow in a hard loop
+	jitterNanoSeconds := refreshNowJitterMax.Nanoseconds()
+	refreshJitter:= ci.r.Int63n(jitterNanoSeconds/2) + jitterNanoSeconds/2
+
+	// if the last refresh resulted in an error, we take into account the retry delay
+	if ci.err != nil {
+		remainingRetryDelay := ci.nextRetryTime - time.Now().UnixNano()
+		if refreshJitter < remainingRetryDelay {
+			refreshJitter = remainingRetryDelay
+		}
+	}
+
+	time.Sleep(time.Duration(refreshJitter) * time.Nanosecond)
+
+	ci.mux.Lock()
+	defer ci.mux.Unlock()
+	return ci.refresh()
+}
+
 // refresh the cached object when needed.
-func (ci *secretCacheItem) refresh() {
+func (ci *secretCacheItem) refresh() (bool, error) {
 	if !ci.isRefreshNeeded() {
-		return
+		return false, nil
 	}
 
 	ci.refreshNeeded = false
@@ -148,12 +179,13 @@ func (ci *secretCacheItem) refresh() {
 		delay = math.Min(delay, exceptionRetryDelayMax)
 		delayDuration := time.Millisecond * time.Duration(delay)
 		ci.nextRetryTime = time.Now().Add(delayDuration).UnixNano()
-		return
+		return false, err
 	}
 
 	ci.setWithHook(result)
 	ci.err = nil
 	ci.errorCount = 0
+	return true, nil
 }
 
 // getSecretValue gets the cached secret value for the given version stage.

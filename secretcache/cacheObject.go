@@ -53,9 +53,5 @@ func (o *cacheObject) isRefreshNeeded() bool {
 		return false
 	}
 
-	if o.nextRetryTime == 0 {
-		return true
-	}
-
 	return o.nextRetryTime <= time.Now().UnixNano()
 }

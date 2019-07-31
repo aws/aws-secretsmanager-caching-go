@@ -135,3 +135,10 @@ func (c *Cache) GetSecretBinaryWithStage(secretId string, versionStage string) (
 
 	return getSecretValueOutput.SecretBinary, nil
 }
+
+// RefreshNow forces a refresh on a cached secret state.
+// Returns a boolean to indicate refresh success and an error if one occurred.
+func (c *Cache) RefreshNow(secretId string) (bool, error) {
+	secretCacheItem := c.getCachedSecret(secretId)
+	return secretCacheItem.refreshNow()
+}

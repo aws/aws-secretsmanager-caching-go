@@ -166,43 +166,57 @@ func TestConcurrentAccess(t *testing.T) {
 	cache := newLRUCache(1)
 	cache.putIfAbsent("key", "value")
 
-	failed := make(chan bool)
+	success := make(chan bool)
 
-	go accessor(cache, 500, "key", "value", failed)
-	go accessor(cache, 400, "key", "value", failed)
-	go accessor(cache, 300, "key", "value", failed)
-	go accessor(cache, 600, "key", "value", failed)
+	go accessor(cache, 500, "key", "value", success)
+	go accessor(cache, 400, "key", "value", success)
+	go accessor(cache, 300, "key", "value", success)
+	go accessor(cache, 600, "key", "value", success)
 
 	for i := 0; i < 4; i++ {
-		if <-failed {
+		if !<-success {
 			t.Fatalf("Expected value not found")
 		}
 	}
 }
 
-func accessor(cache *lruCache, n int, key string, value string, failed chan bool) {
+func accessor(cache *lruCache, n int, key string, value string, success chan bool) {
 	for i := 0; i < n; i++ {
 		if val, found := cache.get(key); !found || val != value {
-			failed <- true
+			success <- false
 		}
 	}
 
-	failed <- false
+	success <- true
 }
 
 func TestConcurrentMutations(t *testing.T) {
 	cache := newLRUCache(1)
-	failed := make(chan bool)
+	done := make(chan bool)
 
-	go mutator(cache, 500, "key")
-	go mutator(cache, 400, "key")
-	go accessor(cache, 300, "key", "value", failed)
-	go accessor(cache, 600, "key", "value", failed)
+	go mutator(cache, 500, "key", done)
 
+	go func(n int, key string, done chan bool) {
+		for i := 0; i < n; i++ {
+			cache.get(key)
+		}
+		done <- true
+	}(2000, "key", done)
+
+	go mutator(cache, 400, "key", done)
+
+	for i := 0; i < 3; i++ {
+		<-done
+	}
+
+	if _, found := cache.get("key"); !found {
+		t.Fatalf("Expected to find a value in cache after concurrent mutations")
+	}
 }
 
-func mutator(cache *lruCache, n int, key string) {
+func mutator(cache *lruCache, n int, key string, done chan bool) {
 	for i := 0; i < n; i++ {
 		cache.putIfAbsent(key, i)
 	}
+	done <- true
 }
