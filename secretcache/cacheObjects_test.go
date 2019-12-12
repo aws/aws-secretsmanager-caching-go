@@ -74,7 +74,7 @@ func TestMaxCacheTTL(t *testing.T) {
 	config := CacheConfig{CacheItemTTL: -1}
 	cacheItem.config = config
 
-	_, err := cacheItem.executeRefresh()
+	_, err := cacheItem.executeRefresh(aws.BackgroundContext())
 
 	if err == nil {
 		t.Fatalf("Expected error due to negative cache ttl")
@@ -83,7 +83,7 @@ func TestMaxCacheTTL(t *testing.T) {
 	config = CacheConfig{CacheItemTTL: 0}
 	cacheItem.config = config
 
-	_, err = cacheItem.executeRefresh()
+	_, err = cacheItem.executeRefresh(aws.BackgroundContext())
 
 	if err != nil {
 		t.Fatalf("Unexpected error on zero cache ttl")
