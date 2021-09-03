@@ -10,14 +10,14 @@ on:
 
 jobs:
   build:
-    name: Build (Go ${{ matrix.python-version }})
+    name: Build (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         go-version: [1.15.x, 1.16.x]
     steps:
       - uses: actions/checkout@v2
-      - name: Install Go ${{ matrix.java-version }}
+      - name: Install Go ${{ matrix.go-version }}
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go-version }}
