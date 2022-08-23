@@ -31,6 +31,7 @@ type CacheConfig struct {
 	// requiring a refresh of the secret state.  Items that have exceeded this
 	// TTL will be refreshed synchronously when requesting the secret value.  If
 	// the synchronous refresh failed, the stale secret will be returned.
+	// This config is not used if DisableRefresh is set to true
 	CacheItemTTL int64
 
 	//The version stage that will be used when requesting the secret values for

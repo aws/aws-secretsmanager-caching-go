@@ -53,7 +53,8 @@ func main() {
 
 ### Cache Configuration
 * `MaxCacheSize int` The maximum number of cached secrets to maintain before evicting secrets that have not been accessed recently.
-* `CacheItemTTL int64` The number of nanoseconds that a cached item is considered valid before requiring a refresh of the secret state.  Items that have exceeded this TTL will be refreshed synchronously when requesting the secret value.  If the synchronous refresh failed, the stale secret will be returned.
+* `CacheItemTTL int64` The number of nanoseconds that a cached item is considered valid before requiring a refresh of the secret state.  Items that have exceeded this TTL will be refreshed synchronously when requesting the secret value.  If the synchronous refresh failed, the stale secret will be returned. This config is not applicable if `DisableRefresh` is set to `true`.
+* `DisableRefresh bool` Disable refreshing of cached items
 * `VersionStage string` The version stage that will be used when requesting the secret values for this cache.
 * `Hook CacheHook` Used to hook in-memory cache updates.
 
@@ -68,6 +69,7 @@ func main() {
 		MaxCacheSize: secretcache.DefaultMaxCacheSize + 10,
 		VersionStage: secretcache.DefaultVersionStage,
 		CacheItemTTL: secretcache.DefaultCacheItemTTL,
+		DisableRefresh: false,
 	}
 	
 	//Instantiate the cache
