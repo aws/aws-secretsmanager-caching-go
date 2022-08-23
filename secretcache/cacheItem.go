@@ -48,6 +48,10 @@ func newSecretCacheItem(config CacheConfig, client secretsmanageriface.SecretsMa
 
 // isRefreshNeeded determines if the cached item should be refreshed.
 func (ci *secretCacheItem) isRefreshNeeded() bool {
+
+	if ci.config.DisableRefresh {
+		return false
+	}
 	if ci.cacheObject.isRefreshNeeded() {
 		return true
 	}

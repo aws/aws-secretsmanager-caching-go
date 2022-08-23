@@ -39,4 +39,7 @@ type CacheConfig struct {
 
 	//Used to hook in-memory cache updates.
 	Hook CacheHook
+
+	//Disable refreshing of Cache entries
+	DisableRefresh bool
 }

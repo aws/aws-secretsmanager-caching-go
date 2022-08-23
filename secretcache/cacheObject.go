@@ -45,6 +45,9 @@ type cacheObject struct {
 
 // isRefreshNeeded determines if the cached object should be refreshed.
 func (o *cacheObject) isRefreshNeeded() bool {
+	if o.config.DisableRefresh {
+		return false
+	}
 	if o.refreshNeeded {
 		return true
 	}

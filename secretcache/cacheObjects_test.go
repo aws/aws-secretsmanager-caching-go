@@ -102,3 +102,32 @@ func (d *dummyClient) DescribeSecretWithContext(context aws.Context, input *secr
 func getStrPtr(str string) *string {
 	return &str
 }
+
+func TestDisableRefresh(t *testing.T) {
+	obj := cacheObject{refreshNeeded: true, config: CacheConfig{DisableRefresh: true}}
+
+	if obj.isRefreshNeeded() {
+		t.Fatalf("Expected false  when config DisableRefresh is true")
+	}
+
+	if obj.isRefreshNeeded() {
+		t.Fatalf("Expected false when err is nil")
+	}
+
+	obj.err = errors.New("some dummy error")
+
+	if obj.isRefreshNeeded() {
+		t.Fatalf("Expected false  when config DisableRefresh is true")
+	}
+
+	obj.nextRetryTime = time.Now().Add(time.Hour * 1).UnixNano()
+
+	if obj.isRefreshNeeded() {
+		t.Fatalf("Expected false when config DisableRefresh is true")
+	}
+
+	obj.nextRetryTime = time.Now().Add(-(time.Hour * 1)).UnixNano()
+	if obj.isRefreshNeeded() {
+		t.Fatalf("Expected false when config DisableRefresh is true")
+	}
+}
