@@ -81,13 +81,13 @@ func (c *Cache) getCachedSecret(secretId string) *secretCacheItem {
 }
 
 // GetSecretString gets the secret string value from the cache for given secret id and a default version stage.
-// Returns the secret sting and an error if operation failed.
+// Returns the secret string and an error if operation failed.
 func (c *Cache) GetSecretString(secretId string) (string, error) {
 	return c.GetSecretStringWithStage(secretId, DefaultVersionStage)
 }
 
 // GetSecretStringWithStage gets the secret string value from the cache for given secret id and version stage.
-// Returns the secret sting and an error if operation failed.
+// Returns the secret string and an error if operation failed.
 func (c *Cache) GetSecretStringWithStage(secretId string, versionStage string) (string, error) {
 	secretCacheItem := c.getCachedSecret(secretId)
 
