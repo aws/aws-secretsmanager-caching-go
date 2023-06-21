@@ -121,7 +121,7 @@ func TestLRUCacheRecent(t *testing.T) {
 		}
 	}
 
-	if val, found := lruCache.get("0"); !found || 0 != val.(int) {
+	if val, found := lruCache.get("0"); !found || val.(int) != 0 {
 		t.Fatalf("Expected to find val in cache - %d", 0)
 	}
 }

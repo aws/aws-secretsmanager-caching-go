@@ -11,14 +11,12 @@
 // ANY KIND, either express or implied. See the License for the specific
 // language governing permissions and limitations under the License.
 
-// Package secretcache provides the Cache struct for in-memory caching of secrets stored in AWS Secrets Manager
-// Also exports a CacheHook, for pre-store and post-fetch processing of cached values
 package secretcache
 
 const (
 	VersionNumber        = "1"
 	MajorRevisionNumber  = "1"
-	MinorRevisionNumber  = "0"
+	MinorRevisionNumber  = "2"
 	BugfixRevisionNumber = "0"
 )
 
