@@ -11,8 +11,6 @@
 // ANY KIND, either express or implied. See the License for the specific
 // language governing permissions and limitations under the License.
 
-// Package secretcache provides the Cache struct for in-memory caching of secrets stored in AWS Secrets Manager
-// Also exports a CacheHook, for pre-store and post-fetch processing of cached values
 package secretcache
 
 // CacheHook is an interface to hook into the local in-memory cache. This interface will allow

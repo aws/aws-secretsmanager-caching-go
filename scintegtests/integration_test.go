@@ -2,15 +2,16 @@ package scintegtests
 
 import (
 	"bytes"
+	"math/rand"
+	"regexp"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-secretsmanager-caching-go/secretcache"
-	"math/rand"
-	"regexp"
-	"testing"
-	"time"
 )
 
 var (
@@ -355,6 +356,12 @@ func integTest_getSecretStringWithTTL(t *testing.T, api secretsmanageriface.Secr
 	time.Sleep(time.Nanosecond * time.Duration(ttlNanoSeconds))
 
 	resultString, err = cache.GetSecretString(*createResult.ARN)
+
+	if err != nil {
+		t.Error(err)
+		return *createResult.ARN
+	}
+
 	if updatedSecretString != resultString {
 		t.Errorf("Expected cached secret to be same as updated version - \"%s\", \"%s\"", resultString, updatedSecretString)
 		return *createResult.ARN
