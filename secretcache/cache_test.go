@@ -19,7 +19,9 @@ import (
 	"github.com/aws/aws-secretsmanager-caching-go/secretcache"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+
 )
 
 func TestInstantiatesClient(t *testing.T) {
@@ -66,11 +68,11 @@ func TestGetSecretBinary(t *testing.T) {
 }
 
 func TestGetSecretMissing(t *testing.T) {
-	versionIdsToStages := make(map[string][]*string)
-	versionIdsToStages["01234567890123456789012345678901"] = []*string{getStrPtr("AWSCURRENT")}
+	versionIdsToStages := make(map[string][]string)
+	versionIdsToStages["01234567890123456789012345678901"] = []string{"AWSCURRENT"}
 
 	mockClient := mockSecretsManagerClient{
-		MockedGetResult:      &secretsmanager.GetSecretValueOutput{Name: getStrPtr("test")},
+		MockedGetResult:      &secretsmanager.GetSecretValueOutput{Name: aws.String("test")},
 		MockedDescribeResult: &secretsmanager.DescribeSecretOutput{VersionIdsToStages: versionIdsToStages},
 	}
 
@@ -92,14 +94,14 @@ func TestGetSecretMissing(t *testing.T) {
 }
 
 func TestGetSecretNoCurrent(t *testing.T) {
-	versionIdsToStages := make(map[string][]*string)
-	versionIdsToStages["01234567890123456789012345678901"] = []*string{getStrPtr("NOT_CURRENT")}
+	versionIdsToStages := make(map[string][]string)
+	versionIdsToStages["01234567890123456789012345678901"] = []string{"NOT_CURRENT"}
 
 	mockClient := mockSecretsManagerClient{
 		MockedGetResult: &secretsmanager.GetSecretValueOutput{
-			Name:         getStrPtr("test"),
-			SecretString: getStrPtr("some secret string"),
-			VersionId:    getStrPtr("01234567890123456789012345678901"),
+			Name:         aws.String("test"),
+			SecretString: aws.String("some secret string"),
+			VersionId:    aws.String("01234567890123456789012345678901"),
 		},
 		MockedDescribeResult: &secretsmanager.DescribeSecretOutput{VersionIdsToStages: versionIdsToStages},
 	}
