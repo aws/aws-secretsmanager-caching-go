@@ -1,5 +1,9 @@
 ## AWS Secrets Manager Go Caching Client
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/aws/aws-secretsmanager-caching-go/secretcache.svg)](https://pkg.go.dev/github.com/aws/aws-secretsmanager-caching-go/secretcache)
+[![Tests](https://github.com/aws/aws-secretsmanager-caching-go/actions/workflows/go.yml/badge.svg?event=push)](https://github.com/aws/aws-secretsmanager-caching-go/actions/workflows/go.yml)
+[![codecov](https://codecov.io/gh/aws/aws-secretsmanager-caching-go/branch/master/graph/badge.svg?token=JZxWjXaZOC)](https://codecov.io/gh/aws/aws-secretsmanager-caching-go)
+
 The AWS Secrets Manager Go caching client enables in-process caching of secrets for Go applications.
 
 ## Getting Started
