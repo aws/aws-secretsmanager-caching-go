@@ -129,6 +129,12 @@ func (ci *secretCacheItem) getVersion(versionStage string) (*cacheVersion, bool)
 	return secretCacheVersion, true
 }
 
+// refresh the cached object on demand
+func (ci *secretCacheItem) refreshNow(ctx context.Context) {
+	ci.refreshNeeded = true
+	ci.refresh(ctx)
+}
+
 // refresh the cached object when needed.
 func (ci *secretCacheItem) refresh(ctx context.Context) {
 	if !ci.isRefreshNeeded() {
