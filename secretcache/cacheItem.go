@@ -129,6 +129,23 @@ func (ci *secretCacheItem) getVersion(versionStage string) (*cacheVersion, bool)
 	return secretCacheVersion, true
 }
 
+// refresh the cached object on demand
+func (ci *secretCacheItem) refreshNow(ctx context.Context) {
+	ci.refreshNeeded = true
+	// Generate a random number to have a sleep jitter to not get stuck in a retry loop
+	sleep := rand.Int63n((forceRefreshJitterSleep+1)-(forceRefreshJitterSleep/2)+1) + (forceRefreshJitterSleep / 2)
+
+	if ci.err != nil {
+		exceptionSleep := ci.nextRefreshTime - time.Now().UnixNano()
+		if exceptionSleep > sleep {
+			sleep = exceptionSleep
+		}
+	}
+
+	time.Sleep(time.Millisecond * time.Duration(sleep))
+	ci.refresh(ctx)
+}
+
 // refresh the cached object when needed.
 func (ci *secretCacheItem) refresh(ctx context.Context) {
 	if !ci.isRefreshNeeded() {

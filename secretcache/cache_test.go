@@ -16,8 +16,10 @@ package secretcache_test
 import (
 	"bytes"
 	"errors"
-	"github.com/aws/aws-secretsmanager-caching-go/secretcache"
 	"testing"
+	"time"
+
+	"github.com/aws/aws-secretsmanager-caching-go/secretcache"
 
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 )
@@ -354,6 +356,49 @@ func TestGetSecretBinaryMultipleNotFound(t *testing.T) {
 	if mockClient.DescribeSecretCallCount != 1 {
 		t.Fatalf("Expected a single call to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
 	}
+}
+
+func TestRefreshNow(t *testing.T) {
+	mockClient, secretId, secretString := newMockedClientWithDummyResults()
+	secretCache, _ := secretcache.New(
+		func(c *secretcache.Cache) { c.Client = &mockClient },
+		func(c *secretcache.Cache) { c.CacheConfig.CacheItemTTL = time.Hour.Nanoseconds() },
+	)
+	originalSecret, err := secretCache.GetSecretString(secretId)
+	if err != nil {
+		t.Fatalf("Unexpected error - %s", err.Error())
+	}
+	if originalSecret != secretString {
+		t.Fatalf("Expected and result secret string are different - \"%s\", \"%s\"", secretString, originalSecret)
+	}
+
+	_, _ = secretCache.GetSecretString(secretId)
+
+	if mockClient.DescribeSecretCallCount != 1 {
+		t.Fatalf("Expected a single call to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
+	}
+
+	secretCache.RefreshNow(secretId)
+	refreshedSecret, err := secretCache.GetSecretString(secretId)
+
+	if err != nil {
+		t.Fatalf("Unexpected error - %s", err.Error())
+	}
+
+	if refreshedSecret != secretString {
+		t.Fatalf("Expected and result secret string are different - \"%s\", \"%s\"", secretString, refreshedSecret)
+	}
+
+	if mockClient.DescribeSecretCallCount != 2 {
+		t.Fatalf("Expected two calls to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
+	}
+
+	_, _ = secretCache.GetSecretString(secretId)
+
+	if mockClient.DescribeSecretCallCount != 2 {
+		t.Fatalf("Expected two calls to DescribeSecret API, got %d", mockClient.DescribeSecretCallCount)
+	}
+
 }
 
 func TestGetSecretVersionStageEmpty(t *testing.T) {

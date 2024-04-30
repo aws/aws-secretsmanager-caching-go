@@ -154,3 +154,13 @@ func (c *Cache) GetSecretBinaryWithStageWithContext(ctx context.Context, secretI
 
 	return getSecretValueOutput.SecretBinary, nil
 }
+
+// Method to force the refresh of a secret inside the cache
+func (c *Cache) RefreshNow(secretId string) {
+	c.RefreshNowWithContext(aws.BackgroundContext(), secretId)
+}
+
+func (c *Cache) RefreshNowWithContext(ctx context.Context, secretId string) {
+	secretCacheItem := c.getCachedSecret(secretId)
+	secretCacheItem.refreshNow(ctx)
+}
