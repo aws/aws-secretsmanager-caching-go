@@ -24,6 +24,7 @@ const (
 	exceptionRetryDelayBase    = 1
 	exceptionRetryGrowthFactor = 2
 	exceptionRetryDelayMax     = 3600
+	forceRefreshJitterSleep    = 5000
 )
 
 // Base cache object for common properties.

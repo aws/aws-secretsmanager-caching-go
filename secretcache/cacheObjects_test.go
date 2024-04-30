@@ -90,6 +90,44 @@ func TestMaxCacheTTL(t *testing.T) {
 	}
 }
 
+func TestRefreshNow(t *testing.T) {
+	mockClient := dummyClient{}
+
+	cacheItem := secretCacheItem{
+		cacheObject: &cacheObject{
+			secretId: "dummy-secret-name",
+			client:   &mockClient,
+			data: &secretsmanager.DescribeSecretOutput{
+				ARN:         getStrPtr("dummy-arn"),
+				Name:        getStrPtr("dummy-name"),
+				Description: getStrPtr("dummy-description"),
+			},
+		},
+	}
+
+	config := CacheConfig{CacheItemTTL: 0}
+	cacheItem.config = config
+	cacheItem.refresh(aws.BackgroundContext())
+	refreshTime := cacheItem.nextRefreshTime
+
+	cacheItem.refresh(aws.BackgroundContext())
+
+	if refreshTime != cacheItem.nextRefreshTime {
+		t.Fatalf("Expected nextRefreshTime to be same")
+	}
+
+	cacheItem.refreshNow(aws.BackgroundContext())
+
+	if cacheItem.nextRefreshTime == refreshTime {
+		t.Fatalf("Expected nextRefreshTime to be different")
+	}
+
+	if cacheItem.errorCount > 0 {
+		t.Fatalf("Expected errorCount to be 0")
+	}
+
+}
+
 type dummyClient struct {
 	secretsmanageriface.SecretsManagerAPI
 }
