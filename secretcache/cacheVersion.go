@@ -18,9 +18,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
 // cacheVersion is the cache object for a secret version.
@@ -30,7 +28,7 @@ type cacheVersion struct {
 }
 
 // newCacheVersion initialises a cacheVersion to cache a secret version.
-func newCacheVersion(config CacheConfig, client secretsmanageriface.SecretsManagerAPI, secretId string, versionId string) cacheVersion {
+func newCacheVersion(config CacheConfig, client SecretsManagerAPIClient, secretId string, versionId string) cacheVersion {
 	return cacheVersion{
 		versionId:   versionId,
 		cacheObject: &cacheObject{config: config, client: client, secretId: secretId, refreshNeeded: true},
@@ -75,7 +73,7 @@ func (cv *cacheVersion) executeRefresh(ctx context.Context) (*secretsmanager.Get
 		SecretId:  &cv.secretId,
 		VersionId: &cv.versionId,
 	}
-	return cv.client.GetSecretValueWithContext(ctx, input, request.WithAppendUserAgent(userAgent()))
+	return cv.client.GetSecretValue(ctx, input)
 }
 
 // getSecretValue gets the cached secret version value.
