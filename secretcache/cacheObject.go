@@ -16,8 +16,6 @@ package secretcache
 import (
 	"sync"
 	"time"
-
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 )
 
 const (
@@ -31,7 +29,7 @@ const (
 type cacheObject struct {
 	mux           sync.Mutex
 	config        CacheConfig
-	client        secretsmanageriface.SecretsManagerAPI
+	client        SecretsManagerAPIClient
 	secretId      string
 	err           error
 	errorCount    int

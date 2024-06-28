@@ -14,14 +14,12 @@
 package secretcache
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
 func TestIsRefreshNeededBase(t *testing.T) {
@@ -74,7 +72,7 @@ func TestMaxCacheTTL(t *testing.T) {
 	config := CacheConfig{CacheItemTTL: -1}
 	cacheItem.config = config
 
-	_, err := cacheItem.executeRefresh(aws.BackgroundContext())
+	_, err := cacheItem.executeRefresh(context.Background())
 
 	if err == nil {
 		t.Fatalf("Expected error due to negative cache ttl")
@@ -83,7 +81,7 @@ func TestMaxCacheTTL(t *testing.T) {
 	config = CacheConfig{CacheItemTTL: 0}
 	cacheItem.config = config
 
-	_, err = cacheItem.executeRefresh(aws.BackgroundContext())
+	_, err = cacheItem.executeRefresh(context.Background())
 
 	if err != nil {
 		t.Fatalf("Unexpected error on zero cache ttl")
@@ -107,16 +105,16 @@ func TestRefreshNow(t *testing.T) {
 
 	config := CacheConfig{CacheItemTTL: 0}
 	cacheItem.config = config
-	cacheItem.refresh(aws.BackgroundContext())
+	cacheItem.refresh(context.Background())
 	refreshTime := cacheItem.nextRefreshTime
 
-	cacheItem.refresh(aws.BackgroundContext())
+	cacheItem.refresh(context.Background())
 
 	if refreshTime != cacheItem.nextRefreshTime {
 		t.Fatalf("Expected nextRefreshTime to be same")
 	}
 
-	cacheItem.refreshNow(aws.BackgroundContext())
+	cacheItem.refreshNow(context.Background())
 
 	if cacheItem.nextRefreshTime == refreshTime {
 		t.Fatalf("Expected nextRefreshTime to be different")
@@ -129,10 +127,10 @@ func TestRefreshNow(t *testing.T) {
 }
 
 type dummyClient struct {
-	secretsmanageriface.SecretsManagerAPI
+	SecretsManagerAPIClient
 }
 
-func (d *dummyClient) DescribeSecretWithContext(context aws.Context, input *secretsmanager.DescribeSecretInput, opts ...request.Option) (*secretsmanager.DescribeSecretOutput, error) {
+func (d *dummyClient) DescribeSecret(context context.Context, input *secretsmanager.DescribeSecretInput, opts ...func(*secretsmanager.Options)) (*secretsmanager.DescribeSecretOutput, error) {
 	return &secretsmanager.DescribeSecretOutput{}, nil
 }
 
