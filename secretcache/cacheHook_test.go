@@ -15,8 +15,9 @@ package secretcache_test
 
 import (
 	"bytes"
-	"github.com/aws/aws-secretsmanager-caching-go/secretcache"
 	"testing"
+
+	"github.com/aws/aws-secretsmanager-caching-go/v2/secretcache"
 )
 
 type DummyCacheHook struct {
