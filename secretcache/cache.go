@@ -18,21 +18,21 @@ package secretcache
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	"github.com/aws/aws-sdk-go-v2/aws/middleware"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	smithymiddleware "github.com/aws/smithy-go/middleware"
 )
 
 // Cache client for AWS Secrets Manager secrets.
 type Cache struct {
 	lru *lruCache
 	CacheConfig
-	Client secretsmanageriface.SecretsManagerAPI
+	Client SecretsManagerAPIClient
 }
 
 // New constructs a secret cache using functional options, uses defaults otherwise.
-// Initialises a SecretsManager Client from a new session.Session.
+// Initialises a SecretsManager Client from a new config.LoadDefaultConfig.
 // Initialises CacheConfig to default values.
 // Initialises lru cache with a default max size.
 func New(optFns ...func(*Cache)) (*Cache, error) {
@@ -57,12 +57,15 @@ func New(optFns ...func(*Cache)) (*Cache, error) {
 
 	//Initialise the secrets manager client
 	if cache.Client == nil {
-		sess, err := session.NewSession()
+		cfg, err := config.LoadDefaultConfig(context.Background(), config.WithAPIOptions([]func(*smithymiddleware.Stack) error{
+			middleware.AddUserAgentKey(userAgent()),
+		}))
+
 		if err != nil {
 			return nil, err
 		}
 
-		cache.Client = secretsmanager.New(sess)
+		cache.Client = secretsmanager.NewFromConfig(cfg)
 	}
 
 	return cache, nil
@@ -86,7 +89,7 @@ func (c *Cache) getCachedSecret(secretId string) *secretCacheItem {
 // GetSecretString gets the secret string value from the cache for given secret id and a default version stage.
 // Returns the secret string and an error if operation failed.
 func (c *Cache) GetSecretString(secretId string) (string, error) {
-	return c.GetSecretStringWithContext(aws.BackgroundContext(), secretId)
+	return c.GetSecretStringWithContext(context.Background(), secretId)
 }
 
 func (c *Cache) GetSecretStringWithContext(ctx context.Context, secretId string) (string, error) {
@@ -96,7 +99,7 @@ func (c *Cache) GetSecretStringWithContext(ctx context.Context, secretId string)
 // GetSecretStringWithStage gets the secret string value from the cache for given secret id and version stage.
 // Returns the secret string and an error if operation failed.
 func (c *Cache) GetSecretStringWithStage(secretId string, versionStage string) (string, error) {
-	return c.GetSecretStringWithStageWithContext(aws.BackgroundContext(), secretId, versionStage)
+	return c.GetSecretStringWithStageWithContext(context.Background(), secretId, versionStage)
 }
 
 func (c *Cache) GetSecretStringWithStageWithContext(ctx context.Context, secretId string, versionStage string) (string, error) {
@@ -122,7 +125,7 @@ func (c *Cache) GetSecretStringWithStageWithContext(ctx context.Context, secretI
 // GetSecretBinary gets the secret binary value from the cache for given secret id and a default version stage.
 // Returns the secret binary and an error if operation failed.
 func (c *Cache) GetSecretBinary(secretId string) ([]byte, error) {
-	return c.GetSecretBinaryWithContext(aws.BackgroundContext(), secretId)
+	return c.GetSecretBinaryWithContext(context.Background(), secretId)
 }
 
 func (c *Cache) GetSecretBinaryWithContext(ctx context.Context, secretId string) ([]byte, error) {
@@ -132,7 +135,7 @@ func (c *Cache) GetSecretBinaryWithContext(ctx context.Context, secretId string)
 // GetSecretBinaryWithStage gets the secret binary value from the cache for given secret id and version stage.
 // Returns the secret binary and an error if operation failed.
 func (c *Cache) GetSecretBinaryWithStage(secretId string, versionStage string) ([]byte, error) {
-	return c.GetSecretBinaryWithStageWithContext(aws.BackgroundContext(), secretId, versionStage)
+	return c.GetSecretBinaryWithStageWithContext(context.Background(), secretId, versionStage)
 }
 
 func (c *Cache) GetSecretBinaryWithStageWithContext(ctx context.Context, secretId string, versionStage string) ([]byte, error) {
@@ -157,7 +160,7 @@ func (c *Cache) GetSecretBinaryWithStageWithContext(ctx context.Context, secretI
 
 // Method to force the refresh of a secret inside the cache
 func (c *Cache) RefreshNow(secretId string) {
-	c.RefreshNowWithContext(aws.BackgroundContext(), secretId)
+	c.RefreshNowWithContext(context.Background(), secretId)
 }
 
 func (c *Cache) RefreshNowWithContext(ctx context.Context, secretId string) {
