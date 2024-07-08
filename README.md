@@ -1,6 +1,6 @@
 ## AWS Secrets Manager Go Caching Client
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/aws/aws-secretsmanager-caching-go/secretcache.svg)](https://pkg.go.dev/github.com/aws/aws-secretsmanager-caching-go/secretcache)
+[![Go Reference](https://pkg.go.dev/badge/github.com/aws/aws-secretsmanager-caching-go/v2/secretcache.svg)](https://pkg.go.dev/github.com/aws/aws-secretsmanager-caching-go/v2/secretcache)
 [![Tests](https://github.com/aws/aws-secretsmanager-caching-go/actions/workflows/go.yml/badge.svg?event=push)](https://github.com/aws/aws-secretsmanager-caching-go/actions/workflows/go.yml)
 [![codecov](https://codecov.io/gh/aws/aws-secretsmanager-caching-go/branch/master/graph/badge.svg?token=JZxWjXaZOC)](https://codecov.io/gh/aws/aws-secretsmanager-caching-go)
 
@@ -37,7 +37,7 @@ package main
 
 import (
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-secretsmanager-caching-go/secretcache"
+	"github.com/aws/aws-secretsmanager-caching-go/v2/secretcache"
 )
 
 var(
