@@ -85,7 +85,7 @@ func main() {
 We use GitHub issues for tracking bugs and caching library feature requests and have limited bandwidth to address them. Please use these community resources for getting help:
 * Ask a question on [Stack Overflow](https://stackoverflow.com/) and tag it with [aws-secrets-manager](https://stackoverflow.com/questions/tagged/aws-secrets-manager).
 * Open a support ticket with [AWS Support](https://console.aws.amazon.com/support/home#/)
-* if it turns out that you may have found a bug, please [open an issue](https://github.com/aws/aws-secretsmanager-caching-python/issues/new).
+* if it turns out that you may have found a bug, please [open an issue](https://github.com/aws/aws-secretsmanager-caching-go/issues/new).
 
 ## License
 
