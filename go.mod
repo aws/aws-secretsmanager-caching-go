@@ -3,10 +3,10 @@ module github.com/aws/aws-secretsmanager-caching-go/v2
 go 1.20
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.30.0
+	github.com/aws/aws-sdk-go-v2 v1.30.3
 	github.com/aws/aws-sdk-go-v2/config v1.27.17
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.32.0
-	github.com/aws/smithy-go v1.20.2
+	github.com/aws/smithy-go v1.20.3
 )
 
 require (
