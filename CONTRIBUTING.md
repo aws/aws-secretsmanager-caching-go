@@ -30,20 +30,20 @@ To send us a pull request, please:
 
 1. Fork the repository.
 2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
-3. If making changes to any `.md` or `.yml` files, make sure to run Prettier before committing (see [Prettier instructions](#prettier-instructions)).
-4. Run `gofmt -s -w .`.
-5. Ensure local tests pass.
-6. Commit to your fork using clear commit messages.
-7. Send us a pull request, answering any default questions in the pull request interface.
-8. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
+3. Use gofmt to ensure consistent formatting for `.go` files, and Prettier for `.md` and `.yml` files. (see [Formatting instructions](#formatting-instructions)).
+4. Ensure local tests pass.
+5. Commit to your fork using clear commit messages.
+6. Send us a pull request, answering any default questions in the pull request interface.
+7. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
 
 GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
 
-## Prettier instructions
+## Formatting instructions
 
-- If using VS Code, install the Prettier extension and use it to format `.md` and `.yml` files.
-- Otherwise, install Prettier globally using npm, pnpm, yarn, etc. (e.g. `npm install -g prettier@latest`) and run `prettier --write .`
+- Install [Prettier](https://prettier.io/docs/install).
+  - If using VS Code, install the VS Code extension for the above.
+- Run `gofmt -s -w .` and `prettier --write **/*.{md,yml}`, or configure VS Code to format on save using gofmt and Prettier.
 
 ## Finding contributions to work on
 
