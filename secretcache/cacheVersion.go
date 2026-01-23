@@ -55,7 +55,7 @@ func (cv *cacheVersion) refresh(ctx context.Context) {
 		cv.err = err
 		delay := exceptionRetryDelayBase * math.Pow(exceptionRetryGrowthFactor, float64(cv.errorCount))
 		delay = math.Min(delay, exceptionRetryDelayMax)
-		delayDuration := time.Nanosecond * time.Duration(delay)
+		delayDuration := time.Millisecond * time.Duration(delay)
 		cv.nextRetryTime = time.Now().Add(delayDuration).UnixNano()
 		return
 	}
