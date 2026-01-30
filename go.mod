@@ -1,6 +1,6 @@
 module github.com/aws/aws-secretsmanager-caching-go/v2
 
-go 1.25
+go 1.24
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.2
