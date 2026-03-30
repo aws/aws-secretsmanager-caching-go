@@ -13,22 +13,27 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['stable', 'oldstable']
+
     steps:
-      - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.24"
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ matrix.go-version }}
 
-      - name: Build
-        run: go build -v ./...
+    - name: Build
+      run: go build -v ./...
 
-      - name: Test
-        run: go test -v ./secretcache -coverprofile=coverage.out -covermode=atomic
-
-      - name: Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          fail_ci_if_error: true
-          use_oidc: true
+    - name: Test
+      run: go test -v ./secretcache -coverprofile=coverage.out -covermode=atomic
+    
+    - name: Codecov
+      uses: codecov/codecov-action@v6
+      with:
+        fail_ci_if_error: true
+        use_oidc: true
