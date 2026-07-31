@@ -36,8 +36,20 @@ type cacheObject struct {
 	refreshNeeded bool
 
 	// The time to wait before retrying a failed AWS Secrets Manager request.
-	nextRetryTime int64
+	nextRetryTime time.Time
 	data          interface{}
+
+	// now overrides time.Now in tests. nil in production.
+	now func() time.Time
+}
+
+// Function used for overing the time.Now in tests. In production, it will
+// just return the result of the normal time.Now function
+func (o *cacheObject) timeNow() time.Time {
+	if o.now != nil {
+		return o.now()
+	}
+	return time.Now()
 }
 
 // isRefreshNeeded determines if the cached object should be refreshed.
@@ -50,9 +62,11 @@ func (o *cacheObject) isRefreshNeeded() bool {
 		return false
 	}
 
-	if o.nextRetryTime == 0 {
+	if o.nextRetryTime.IsZero() {
 		return true
 	}
 
-	return o.nextRetryTime <= time.Now().UnixNano()
+	// Compare both the monotonic and wall clock time to reduce possibility of secrets living longer than they should be
+	// Note: During normal comparison, the monotonic clock is used. Round(0) will force the wall clock reading to be used.
+	return o.nextRetryTime.Compare(o.timeNow()) <= 0 || o.nextRetryTime.Round(0).Compare(o.timeNow().Round(0)) <= 0
 }
