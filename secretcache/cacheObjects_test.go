@@ -227,7 +227,7 @@ func TestWallClockReset_RefreshNow_DoesNotBlock(t *testing.T) {
 			now:           clock.Now,
 			nowWall:       clock.NowWall,
 		},
-		nextRefreshTime: time.Now().Add(24 * time.Hour),
+		nextRefreshTime: clock.Now().Add(24 * time.Hour),
 	}
 	clock.AdvanceMonotonic(24 * time.Hour)
 
