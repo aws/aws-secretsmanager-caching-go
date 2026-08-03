@@ -62,10 +62,7 @@ func (o *cacheObject) timeNowWall() time.Time {
 	if o.nowWall != nil {
 		return o.nowWall().Round(0)
 	}
-	if o.now != nil {
-		return o.now().Round(0)
-	}
-	return time.Now().Round(0)
+	return o.timeNow().Round(0)
 }
 
 // isRefreshNeeded determines if the cached object should be refreshed.
