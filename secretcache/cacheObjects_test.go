@@ -387,16 +387,6 @@ func (d *dummyClient) DescribeSecret(context context.Context, input *secretsmana
 	return &secretsmanager.DescribeSecretOutput{}, nil
 }
 
-type countingDummyClient struct {
-	SecretsManagerAPIClient
-	describeCallCount *int
-}
-
-func (c *countingDummyClient) DescribeSecret(context context.Context, input *secretsmanager.DescribeSecretInput, opts ...func(*secretsmanager.Options)) (*secretsmanager.DescribeSecretOutput, error) {
-	*c.describeCallCount++
-	return &secretsmanager.DescribeSecretOutput{}, nil
-}
-
 // Helper function to get a string pointer for input string.
 func getStrPtr(str string) *string {
 	return &str
