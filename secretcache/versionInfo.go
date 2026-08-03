@@ -14,18 +14,11 @@
 package secretcache
 
 const (
-	VersionNumber        = "2"
-	MajorRevisionNumber  = "0"
-	MinorRevisionNumber  = "2"
-	BugfixRevisionNumber = "0"
+	// Version is the release version of this module in Semantic Versioning
+	// 2.0.0 form (MAJOR.MINOR.PATCH).
+	Version = "2.2.0"
+
+	// userAgentKey is the product name reported alongside Version in the
+	// User-Agent header of requests to AWS Secrets Manager.
+	userAgentKey = "AwsSecretCache"
 )
-
-// releaseVersion builds the version string
-func releaseVersion() string {
-	return VersionNumber + "." + MajorRevisionNumber + "." + MinorRevisionNumber + "." + BugfixRevisionNumber
-}
-
-// userAgent builds the user agent string to be appended to outgoing requests to the secrets manager API
-func userAgent() string {
-	return "AwsSecretCache/" + releaseVersion()
-}
