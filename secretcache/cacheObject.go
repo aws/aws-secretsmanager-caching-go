@@ -41,15 +41,31 @@ type cacheObject struct {
 
 	// now overrides time.Now in tests. nil in production.
 	now func() time.Time
+
+	// nowWall overrides the wall clock reading in tests. nil in production.
+	nowWall func() time.Time
 }
 
-// Function used for overing the time.Now in tests. In production, it will
+// Function used for overriding the time.Now in tests. In production, it will
 // just return the result of the normal time.Now function
 func (o *cacheObject) timeNow() time.Time {
 	if o.now != nil {
 		return o.now()
 	}
 	return time.Now()
+}
+
+// timeNowWall returns the current time with the monotonic reading stripped, so
+// comparisons against it use the wall clock. Utilized in tests to set a wall clock
+// time
+func (o *cacheObject) timeNowWall() time.Time {
+	if o.nowWall != nil {
+		return o.nowWall().Round(0)
+	}
+	if o.now != nil {
+		return o.now().Round(0)
+	}
+	return time.Now().Round(0)
 }
 
 // isRefreshNeeded determines if the cached object should be refreshed.
@@ -68,5 +84,5 @@ func (o *cacheObject) isRefreshNeeded() bool {
 
 	// Compare both the monotonic and wall clock time to reduce possibility of secrets living longer than they should be
 	// Note: During normal comparison, the monotonic clock is used. Round(0) will force the wall clock reading to be used.
-	return o.nextRetryTime.Compare(o.timeNow()) <= 0 || o.nextRetryTime.Round(0).Compare(o.timeNow().Round(0)) <= 0
+	return o.nextRetryTime.Compare(o.timeNow()) <= 0 || o.nextRetryTime.Round(0).Compare(o.timeNowWall()) <= 0
 }

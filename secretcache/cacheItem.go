@@ -54,7 +54,7 @@ func (ci *secretCacheItem) isRefreshNeeded() bool {
 	}
 
 	// Check both monotonic and wall clock to determine if refresh is needed
-	return ci.nextRefreshTime.Compare(ci.timeNow()) <= 0 || ci.nextRefreshTime.Round(0).Compare(ci.timeNow().Round(0)) <= 0
+	return ci.nextRefreshTime.Compare(ci.timeNow()) <= 0 || ci.nextRefreshTime.Round(0).Compare(ci.timeNowWall()) <= 0
 }
 
 // getVersionId gets the version id for the given version stage.
