@@ -5,17 +5,14 @@ on:
   push:
     branches: ["master"]
   pull_request_target:
-    types: [labeled]
-
-permissions:
-  id-token: write
-  contents: read
+    types: [opened, synchronize, ready_for_review, reopened]
 
 jobs:
-  test:
-    if: |
-      github.event_name != 'pull_request_target' ||
-      contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+  integ:
+    environment: integ
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -25,6 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          allow-unsafe-pr-checkout: true
           ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
