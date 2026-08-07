@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the leading v (e.g. 2.3.0). Must match Version in secretcache/versionInfo.go."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.24"
+
+      - name: Check version matches versionInfo.go
+        run: |
+          input="${{ github.event.inputs.version }}"
+          if ! echo "$input" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version '$input' is not strict semver (expected x.y.z)."
+            exit 1
+          fi
+          repo=$(grep -oE 'Version = "[^"]+"' secretcache/versionInfo.go \
+                  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "Requested version:      $input"
+          echo "versionInfo.go version: $repo"
+          if [ "$input" != "$repo" ]; then
+            echo "::error::Requested version ($input) does not match Version in secretcache/versionInfo.go ($repo)."
+            exit 1
+          fi
+
+      - name: Check tag does not already exist
+        run: |
+          tag="v${{ github.event.inputs.version }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists. Releases are immutable; bump the version to release again."
+            exit 1
+          fi
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v ./secretcache
+
+      - name: Tag and create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ github.event.inputs.version }}"
+          gh release create "$tag" \
+            --title "$tag" \
+            --generate-notes
