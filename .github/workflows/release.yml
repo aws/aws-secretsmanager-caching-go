@@ -9,18 +9,13 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.24"
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Check version matches versionInfo.go
         run: |
@@ -42,16 +37,21 @@ jobs:
         run: |
           tag="v${{ github.event.inputs.version }}"
           if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
-            echo "::error::Tag $tag already exists. Releases are immutable; bump the version to release again."
+            echo "::error::Tag $tag already exists."
             exit 1
           fi
 
-      - name: Build
-        run: go build -v ./...
+  build:
+    needs: check
+    uses: ./.github/workflows/go.yml
 
-      - name: Test
-        run: go test -v ./secretcache
-
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
       - name: Tag and create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -59,4 +59,5 @@ jobs:
           tag="v${{ github.event.inputs.version }}"
           gh release create "$tag" \
             --title "$tag" \
+            --target "$GITHUB_SHA" \
             --generate-notes
