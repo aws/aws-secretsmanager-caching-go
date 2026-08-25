@@ -16,7 +16,7 @@ package secretcache
 const (
 	// Version is the release version of this module in Semantic Versioning
 	// 2.0.0 form (MAJOR.MINOR.PATCH).
-	Version = "2.2.0"
+	Version = "2.3.0"
 
 	// userAgentKey is the product name reported alongside Version in the
 	// User-Agent header of requests to AWS Secrets Manager.
