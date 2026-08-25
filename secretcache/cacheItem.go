@@ -29,7 +29,8 @@ type secretCacheItem struct {
 
 	// The next scheduled refresh time for this item.  Once the item is accessed
 	// after this time, the item will be synchronously refreshed.
-	nextRefreshTime int64
+	nextRefreshTime time.Time
+
 	*cacheObject
 }
 
@@ -38,17 +39,22 @@ func newSecretCacheItem(config CacheConfig, client SecretsManagerAPIClient, secr
 	return secretCacheItem{
 		versions:        newLRUCache(10),
 		cacheObject:     &cacheObject{config: config, client: client, secretId: secretId, refreshNeeded: true},
-		nextRefreshTime: time.Now().UnixNano(),
+		nextRefreshTime: time.Now(),
 	}
 }
 
 // isRefreshNeeded determines if the cached item should be refreshed.
+// Dual-check: monotonic clock (immune to wall clock jumps) OR wall clock
+// (advances during macOS sleep when monotonic freezes). Extra API calls
+// from a forward wall clock jump could occur, but is acceptable
+// to avoid serving stale secrets.
 func (ci *secretCacheItem) isRefreshNeeded() bool {
 	if ci.cacheObject.isRefreshNeeded() {
 		return true
 	}
 
-	return ci.nextRefreshTime <= time.Now().UnixNano()
+	// Check both monotonic and wall clock to determine if refresh is needed
+	return ci.nextRefreshTime.Compare(ci.timeNow()) <= 0 || ci.nextRefreshTime.Round(0).Compare(ci.timeNowWall()) <= 0
 }
 
 // getVersionId gets the version id for the given version stage.
@@ -103,7 +109,7 @@ func (ci *secretCacheItem) executeRefresh(ctx context.Context) (*secretsmanager.
 		ttl = rand.Int63n(maxTTL/2) + maxTTL/2
 	}
 
-	ci.nextRefreshTime = time.Now().Add(time.Nanosecond * time.Duration(ttl)).UnixNano()
+	ci.nextRefreshTime = ci.timeNow().Add(time.Nanosecond * time.Duration(ttl))
 	return result, err
 }
 
@@ -127,20 +133,19 @@ func (ci *secretCacheItem) getVersion(versionStage string) (*cacheVersion, bool)
 	return secretCacheVersion, true
 }
 
-// refresh the cached object on demand
+// refreshNow forces a refresh with a jittered sleep to avoid retry storms.
 func (ci *secretCacheItem) refreshNow(ctx context.Context) {
 	ci.refreshNeeded = true
-	// Generate a random number to have a sleep jitter to not get stuck in a retry loop
-	sleep := rand.Int63n((forceRefreshJitterSleep+1)-(forceRefreshJitterSleep/2)+1) + (forceRefreshJitterSleep / 2)
+	sleep := (rand.Int63n((forceRefreshJitterSleep+1)-(forceRefreshJitterSleep/2)+1) + (forceRefreshJitterSleep / 2)) * int64(time.Millisecond)
 
 	if ci.err != nil {
-		exceptionSleep := ci.nextRefreshTime - time.Now().UnixNano()
+		exceptionSleep := int64(ci.nextRefreshTime.Sub(ci.timeNow()))
 		if exceptionSleep > sleep {
 			sleep = exceptionSleep
 		}
 	}
 
-	time.Sleep(time.Millisecond * time.Duration(sleep))
+	time.Sleep(time.Duration(sleep))
 	ci.refresh(ctx)
 }
 
@@ -160,7 +165,7 @@ func (ci *secretCacheItem) refresh(ctx context.Context) {
 		delay := exceptionRetryDelayBase * math.Pow(exceptionRetryGrowthFactor, float64(ci.errorCount))
 		delay = math.Min(delay, exceptionRetryDelayMax)
 		delayDuration := time.Millisecond * time.Duration(delay)
-		ci.nextRetryTime = time.Now().Add(delayDuration).UnixNano()
+		ci.nextRetryTime = ci.timeNow().Add(delayDuration)
 		return
 	}
 

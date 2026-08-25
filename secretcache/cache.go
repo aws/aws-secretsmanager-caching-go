@@ -58,7 +58,7 @@ func New(optFns ...func(*Cache)) (*Cache, error) {
 	//Initialise the secrets manager client
 	if cache.Client == nil {
 		cfg, err := config.LoadDefaultConfig(context.Background(), config.WithAPIOptions([]func(*smithymiddleware.Stack) error{
-			middleware.AddUserAgentKey(userAgent()),
+			middleware.AddUserAgentKeyValue(userAgentKey, Version),
 		}))
 
 		if err != nil {

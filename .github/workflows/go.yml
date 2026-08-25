@@ -5,6 +5,7 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_call:
 
 permissions:
   contents: read
@@ -19,12 +20,12 @@ jobs:
         go-version: ['stable', 'oldstable']
 
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ matrix.go-version }}
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: ${{ matrix.go-version }}
 
     - name: Build
       run: go build -v ./...
@@ -32,8 +33,8 @@ jobs:
     - name: Test
       run: go test -v ./secretcache -coverprofile=coverage.out -covermode=atomic
     
-    - name: Codecov
-      uses: codecov/codecov-action@v6
-      with:
-        fail_ci_if_error: true
-        use_oidc: true
+      - name: Codecov
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        with:
+          fail_ci_if_error: true
+          use_oidc: true
