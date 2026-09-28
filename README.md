@@ -81,6 +81,22 @@ func main() {
 	)
 ```
 
+#### Request Timeouts
+If you don't pass in a Client, the cache creates one that gives up on each request attempt to Secrets Manager after `secretcache.DefaultRequestTimeout` (2 seconds). The SDK's default HTTP client has no overall timeout, so without this a Secrets Manager endpoint that stops answering blocks the call indefinitely. A timed out attempt is retried like any other network error. Fetching credentials (for example from STS or SSO) uses the SDK's own HTTP client and is not covered by this timeout.
+
+If you pass in your own Client, the cache uses its timeouts unchanged (and doesn't add its user agent), so set them yourself. Add the timeout to the SDK's HTTP client rather than replacing it, so settings such as a custom CA bundle are kept:
+```go
+import awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
+
+	cfg, _ := config.LoadDefaultConfig(context.TODO())
+	client := secretsmanager.NewFromConfig(cfg, func(o *secretsmanager.Options) {
+		if c, ok := o.HTTPClient.(*awshttp.BuildableClient); ok {
+			o.HTTPClient = c.WithTimeout(2 * time.Second)
+		}
+	})
+```
+A context deadline passed to the `...WithContext` methods also bounds the request to Secrets Manager, but not the time spent waiting for another call that is already refreshing the same secret.
+
 ### Getting Help
 Please use these community resources for getting help:
 * Ask a question on [Stack Overflow](https://stackoverflow.com/) and tag it with [aws-secrets-manager](https://stackoverflow.com/questions/tagged/aws-secrets-manager).

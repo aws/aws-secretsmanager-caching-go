@@ -15,12 +15,17 @@ package secretcache_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"net"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-secretsmanager-caching-go/v2/secretcache"
 
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
@@ -30,6 +35,90 @@ func TestInstantiatesClient(t *testing.T) {
 	if err != nil || secretCache.Client == nil {
 		t.Fatalf("Failed to instantiate default Client")
 	}
+}
+
+func TestDefaultRequestTimeout(t *testing.T) {
+	if secretcache.DefaultRequestTimeout != 2*time.Second {
+		t.Fatalf("DefaultRequestTimeout is %s, expected 2s", secretcache.DefaultRequestTimeout)
+	}
+
+	isolateAWSEnv(t, "http://127.0.0.1:1", 1)
+	secretCache, err := secretcache.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	httpClient, ok := secretCache.Client.(*secretsmanager.Client).Options().HTTPClient.(*awshttp.BuildableClient)
+	if !ok {
+		t.Fatal("Expected the default client to use the SDK's BuildableClient")
+	}
+	if httpClient.GetTimeout() != secretcache.DefaultRequestTimeout {
+		t.Fatalf("Default client timeout is %s, expected %s", httpClient.GetTimeout(), secretcache.DefaultRequestTimeout)
+	}
+}
+
+func TestDefaultClientGivesUpOnHungEndpoint(t *testing.T) {
+	elapsed := timeToGiveUpOnHungEndpoint(t, 1)
+	if elapsed < secretcache.DefaultRequestTimeout || elapsed > secretcache.DefaultRequestTimeout+3*time.Second {
+		t.Fatalf("Took %s to give up, expected about %s", elapsed, secretcache.DefaultRequestTimeout)
+	}
+}
+
+func TestDefaultClientRetriesTimedOutAttempt(t *testing.T) {
+	// Two attempts, plus up to 2 seconds of backoff between them.
+	elapsed := timeToGiveUpOnHungEndpoint(t, 2)
+	if elapsed < 2*secretcache.DefaultRequestTimeout || elapsed > 2*secretcache.DefaultRequestTimeout+5*time.Second {
+		t.Fatalf("Took %s to give up, expected two attempts of %s", elapsed, secretcache.DefaultRequestTimeout)
+	}
+}
+
+// isolateAWSEnv points the default client at endpoint with dummy credentials, so
+// the developer's own AWS settings (profile, endpoint overrides) can't change
+// the test.
+func isolateAWSEnv(t *testing.T, endpoint string, maxAttempts int) {
+	t.Setenv("AWS_ENDPOINT_URL_SECRETS_MANAGER", endpoint)
+	t.Setenv("AWS_IGNORE_CONFIGURED_ENDPOINT_URLS", "")
+	t.Setenv("AWS_USE_FIPS_ENDPOINT", "")
+	t.Setenv("AWS_USE_DUALSTACK_ENDPOINT", "")
+	t.Setenv("AWS_PROFILE", "")
+	t.Setenv("AWS_REGION", "us-west-2")
+	t.Setenv("AWS_ACCESS_KEY_ID", "akid")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+	t.Setenv("AWS_CONFIG_FILE", os.DevNull)
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", os.DevNull)
+	t.Setenv("AWS_MAX_ATTEMPTS", strconv.Itoa(maxAttempts))
+}
+
+// timeToGiveUpOnHungEndpoint returns how long the default client takes to fail
+// against an endpoint that hangs, and checks that it failed with a timeout.
+func timeToGiveUpOnHungEndpoint(t *testing.T, maxAttempts int) time.Duration {
+	// A listener that never accepts completes the TCP handshake but never
+	// answers, like an endpoint that hangs after connecting.
+	hung, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hung.Close()
+
+	isolateAWSEnv(t, "http://"+hung.Addr().String(), maxAttempts)
+	secretCache, err := secretcache.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A guard deadline, so the test fails instead of hanging if the timeout is lost.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	start := time.Now()
+	_, err = secretCache.GetSecretStringWithContext(ctx, "test")
+	elapsed := time.Since(start)
+
+	var netErr net.Error
+	if !errors.As(err, &netErr) || !netErr.Timeout() || ctx.Err() != nil {
+		t.Fatalf("Expected the request's own timeout, got %v", err)
+	}
+	return elapsed
 }
 
 func TestGetSecretString(t *testing.T) {

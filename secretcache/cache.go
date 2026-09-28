@@ -17,12 +17,21 @@ package secretcache
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws/middleware"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	smithymiddleware "github.com/aws/smithy-go/middleware"
 )
+
+// DefaultRequestTimeout bounds each request attempt made by the client that New
+// creates when no Client is given. The SDK's default HTTP client has no overall
+// timeout, so an endpoint that accepts a connection and never answers would
+// block the caller indefinitely. A timed out attempt is retried like any other
+// network error. A Client passed in keeps its own timeouts.
+const DefaultRequestTimeout = 2 * time.Second
 
 // Cache client for AWS Secrets Manager secrets.
 type Cache struct {
@@ -32,7 +41,8 @@ type Cache struct {
 }
 
 // New constructs a secret cache using functional options, uses defaults otherwise.
-// Initialises a SecretsManager Client from a new config.LoadDefaultConfig.
+// Initialises a SecretsManager Client from a new config.LoadDefaultConfig,
+// with each request attempt bounded by DefaultRequestTimeout.
 // Initialises CacheConfig to default values.
 // Initialises lru cache with a default max size.
 func New(optFns ...func(*Cache)) (*Cache, error) {
@@ -65,10 +75,19 @@ func New(optFns ...func(*Cache)) (*Cache, error) {
 			return nil, err
 		}
 
-		cache.Client = secretsmanager.NewFromConfig(cfg)
+		cache.Client = secretsmanager.NewFromConfig(cfg, withDefaultRequestTimeout)
 	}
 
 	return cache, nil
+}
+
+// withDefaultRequestTimeout sets DefaultRequestTimeout on the Secrets Manager
+// client's copy of the HTTP client, so a custom CA bundle loaded from the shared
+// config is kept and credential providers are not affected.
+func withDefaultRequestTimeout(o *secretsmanager.Options) {
+	if c, ok := o.HTTPClient.(*awshttp.BuildableClient); ok {
+		o.HTTPClient = c.WithTimeout(DefaultRequestTimeout)
+	}
 }
 
 // getCachedSecret gets a cached secret for the given secret identifier.
