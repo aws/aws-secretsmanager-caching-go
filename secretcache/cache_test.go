@@ -434,3 +434,25 @@ func TestGetSecretVersionStageEmpty(t *testing.T) {
 		t.Fatalf("Expected and result secret string are different - \"%s\", \"%s\"", secretString, result)
 	}
 }
+
+func TestGetSecretMaxCacheSizeUnset(t *testing.T) {
+	mockClient, _, secretString := newMockedClientWithDummyResults()
+
+	//Replacing the whole CacheConfig leaves MaxCacheSize at zero
+	secretCache, _ := secretcache.New(
+		func(c *secretcache.Cache) { c.Client = &mockClient },
+		func(c *secretcache.Cache) {
+			c.CacheConfig = secretcache.CacheConfig{CacheItemTTL: secretcache.DefaultCacheItemTTL}
+		},
+	)
+
+	result, err := secretCache.GetSecretString("test")
+
+	if err != nil {
+		t.Fatalf("Unexpected error - %s", err.Error())
+	}
+
+	if result != secretString {
+		t.Fatalf("Expected and result secret string are different - \"%s\", \"%s\"", secretString, result)
+	}
+}

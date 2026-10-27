@@ -53,6 +53,9 @@ func New(optFns ...func(*Cache)) (*Cache, error) {
 	}
 
 	//Initialise lru cache
+	if cache.MaxCacheSize <= 0 {
+		cache.MaxCacheSize = DefaultMaxCacheSize
+	}
 	cache.lru = newLRUCache(cache.MaxCacheSize)
 
 	//Initialise the secrets manager client
