@@ -86,14 +86,14 @@ func (c *Cache) getCachedSecret(secretId string) *secretCacheItem {
 	return secretCacheItem
 }
 
-// GetSecretString gets the secret string value from the cache for given secret id and a default version stage.
+// GetSecretString gets the secret string value from the cache for given secret id and the configured default version stage.
 // Returns the secret string and an error if operation failed.
 func (c *Cache) GetSecretString(secretId string) (string, error) {
 	return c.GetSecretStringWithContext(context.Background(), secretId)
 }
 
 func (c *Cache) GetSecretStringWithContext(ctx context.Context, secretId string) (string, error) {
-	return c.GetSecretStringWithStageWithContext(ctx, secretId, DefaultVersionStage)
+	return c.GetSecretStringWithStageWithContext(ctx, secretId, "")
 }
 
 // GetSecretStringWithStage gets the secret string value from the cache for given secret id and version stage.
@@ -122,14 +122,14 @@ func (c *Cache) GetSecretStringWithStageWithContext(ctx context.Context, secretI
 	return *getSecretValueOutput.SecretString, nil
 }
 
-// GetSecretBinary gets the secret binary value from the cache for given secret id and a default version stage.
+// GetSecretBinary gets the secret binary value from the cache for given secret id and the configured default version stage.
 // Returns the secret binary and an error if operation failed.
 func (c *Cache) GetSecretBinary(secretId string) ([]byte, error) {
 	return c.GetSecretBinaryWithContext(context.Background(), secretId)
 }
 
 func (c *Cache) GetSecretBinaryWithContext(ctx context.Context, secretId string) ([]byte, error) {
-	return c.GetSecretBinaryWithStageWithContext(ctx, secretId, DefaultVersionStage)
+	return c.GetSecretBinaryWithStageWithContext(ctx, secretId, "")
 }
 
 // GetSecretBinaryWithStage gets the secret binary value from the cache for given secret id and version stage.
